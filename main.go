@@ -11,7 +11,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"reflect"
 	"time"
 )
 
@@ -36,8 +35,12 @@ type link struct {
 
 // D3 is the structure used to construct the data for the frontend D3 graph.
 type D3 struct {
-	Nodes []node `json:"nodes"`
-	Links []link `json:"links"`
+	Nodes           []node `json:"nodes"`
+	Links           []link `json:"links"`
+	RequestsUsed    int    `json:"requestsUsed"`
+	MaxRequests     int    `json:"maxRequests"`
+	LastUpdate      string `json:"lastUpdate"`
+	RefreshInterval int64  `json:"refreshInterval"`
 }
 
 // stringInSlice determines whenever a string is already present in a slice.
@@ -74,7 +77,7 @@ func extractEventsAsLinks(events GithubEvents, d3Data *D3) {
 
 // buildGraph wraps around the other graph-building functions to generate new graph data.
 // It iterates on as many API event pages as specified via the CLI flag or the default value.
-func buildGraph() bool {
+func buildGraph(nextRefresh int64) (string, bool) {
 	// Prepare graph
 	var d3Data D3
 	for page := 1; page < pages+1; page++ {
@@ -91,10 +94,10 @@ func buildGraph() bool {
 				time.Sleep(time.Second * 1)
 				secondsToWait--
 			}
-			return buildGraph()
+			return buildGraph(secondsToWait)
 		} else if events == nil {
 			fmt.Println("No new data available!")
-			return false
+			return "", false
 		}
 		// Create graph nodes
 		extractReposAsNodes(events, &d3Data)
@@ -103,9 +106,15 @@ func buildGraph() bool {
 		clearLine()
 		fmt.Printf("Page %d analyzed...\r", page)
 	}
+
+	d3Data.RequestsUsed = RateLimitSpecs.Limit - RateLimitSpecs.Remaining
+	d3Data.MaxRequests = RateLimitSpecs.Limit
+	d3Data.LastUpdate = time.Now().Format(time.RFC822Z)
+	d3Data.RefreshInterval = nextRefresh
+
 	// Output to memory
 	MarshalToMemory(d3Data)
-	return true
+	return d3Data.LastUpdate, true
 }
 
 // clearLine makes sure the terminal line is (theoretically...) empty before writing on it.
@@ -122,28 +131,52 @@ func main() {
 
 	go Listen(port)
 	fmt.Println("Listening on port " + port + " - http://localhost:" + port + "/\n")
-	buildGraph()
+
+	// TODO: Workaround: this initial call is needed only to populate RateLmitSpecs
+	buildGraph(-1)
+
 	var duration time.Duration
 	if delay != (60 * pages) {
 		duration = time.Second * time.Duration(delay)
 	} else {
-		if reflect.TypeOf(RateLimitSpecs.PollInterval).String() != "int" {
-			RateLimitSpecs.PollInterval = 60 * pages
-		}
 		duration = time.Second * time.Duration(RateLimitSpecs.PollInterval)
 	}
+
+	// TODO: refreshInterval is constant throughout the whole program. Refactor perhaps?
+	refreshInterval := int64(duration.Seconds())
+	fmt.Printf("refreshInterval = %d\n", refreshInterval)
+
+	lastUpdated, _ := buildGraph(refreshInterval)
+	secondsToWait := refreshInterval
+
 	for {
-		secondsToWait := duration.Seconds()
 		for {
 			if secondsToWait <= 0 {
 				clearLine()
 				break
 			}
-			fmt.Printf("Content updated at %s - Next refresh in: %fs (RL: %d/%d req/hr used)\r",
-				time.Now().Format(time.RFC822Z), secondsToWait, (RateLimitSpecs.Limit - RateLimitSpecs.Remaining), RateLimitSpecs.Limit)
+
+			nextRefresh, err := time.Parse(time.RFC822Z, lastUpdated)
+			nextRefresh = nextRefresh.Add(time.Duration(refreshInterval) * time.Second)
+
+			if err != nil {
+				panic("")
+			}
+
+			foo, err := time.Parse(time.RFC822Z, lastUpdated)
+			if err != nil {
+				panic("")
+			}
+
+			fmt.Printf("interval = %d", int((nextRefresh.Sub(foo)).Seconds()))
+
+			secondsToWait := int64(nextRefresh.Sub(time.Now()).Seconds())
+
+			fmt.Printf("Content updated at %s - Next refresh in: %d (RL: %d/%d req/hr used)\r",
+				lastUpdated, secondsToWait, (RateLimitSpecs.Limit - RateLimitSpecs.Remaining), RateLimitSpecs.Limit)
 			time.Sleep(time.Second * 1)
-			secondsToWait--
 		}
-		buildGraph()
+
+		buildGraph(refreshInterval)
 	}
 }
