@@ -109,7 +109,7 @@ func buildGraph(nextRefresh int64) (string, bool) {
 
 	d3Data.RequestsUsed = RateLimitSpecs.Limit - RateLimitSpecs.Remaining
 	d3Data.MaxRequests = RateLimitSpecs.Limit
-	d3Data.LastUpdate = time.Now().Format(time.RFC822Z)
+	d3Data.LastUpdate = time.Now().Format(time.RFC1123Z)
 	d3Data.RefreshInterval = nextRefresh
 
 	// Output to memory
@@ -144,39 +144,33 @@ func main() {
 
 	// TODO: refreshInterval is constant throughout the whole program. Refactor perhaps?
 	refreshInterval := int64(duration.Seconds())
-	fmt.Printf("refreshInterval = %d\n", refreshInterval)
 
 	lastUpdated, _ := buildGraph(refreshInterval)
 	secondsToWait := refreshInterval
 
 	for {
 		for {
-			if secondsToWait <= 0 {
+			if secondsToWait == 0 {
 				clearLine()
 				break
 			}
 
-			nextRefresh, err := time.Parse(time.RFC822Z, lastUpdated)
+			nextRefresh, err := time.Parse(time.RFC1123Z, lastUpdated)
+
+			if err != nil {
+				panic("Error while trying to parse date")
+			}
+
 			nextRefresh = nextRefresh.Add(time.Duration(refreshInterval) * time.Second)
 
-			if err != nil {
-				panic("")
-			}
-
-			foo, err := time.Parse(time.RFC822Z, lastUpdated)
-			if err != nil {
-				panic("")
-			}
-
-			fmt.Printf("interval = %d", int((nextRefresh.Sub(foo)).Seconds()))
-
-			secondsToWait := int64(nextRefresh.Sub(time.Now()).Seconds())
+			secondsToWait = int64(nextRefresh.Sub(time.Now()).Seconds())
 
 			fmt.Printf("Content updated at %s - Next refresh in: %d (RL: %d/%d req/hr used)\r",
 				lastUpdated, secondsToWait, (RateLimitSpecs.Limit - RateLimitSpecs.Remaining), RateLimitSpecs.Limit)
 			time.Sleep(time.Second * 1)
 		}
 
-		buildGraph(refreshInterval)
+		lastUpdated, _ = buildGraph(refreshInterval)
+		secondsToWait = refreshInterval
 	}
 }
