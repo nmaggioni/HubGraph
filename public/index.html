@@ -75,7 +75,7 @@
         .links(graph.links);
 
     var requestsUsedEl = document.getElementById("requests_used");
-    requestsUsedEl.textContent = graph.requestsUsed;
+    requestsUsedEl.textContent = graph.requestsUsed + "/" + graph.maxRequests;
 
     var nodesNumberEl = document.getElementById("nodes_number");
     nodesNumberEl.textContent = graph.nodes.length;
