@@ -40,6 +40,14 @@ type D3 struct {
 	Links []link `json:"links"`
 }
 
+// Dashboard is the structure containing the necessary details for the dashboard.
+type Dashboard struct {
+	RequestsUsed    int    `json:"requestsUsed"`
+	MaxRequests     int    `json:"maxRequests"`
+	LastUpdate      string `json:"lastUpdate"`
+	RefreshInterval int64  `json:"refreshInterval"`
+}
+
 // stringInSlice determines whenever a string is already present in a slice.
 func stringInSlice(a string, list []string) bool {
 	for _, b := range list {
@@ -109,7 +117,7 @@ func buildGraph() {
 		fmt.Printf("Page %d analyzed...\r", page)
 	}
 	// Output to memory
-	MarshalToMemory(d3Data)
+	MarshalD3ToMemory(d3Data)
 }
 
 // clearLine makes sure the terminal line is (theoretically...) empty before writing on it.
