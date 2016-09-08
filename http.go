@@ -1,8 +1,10 @@
 package main
 
 import (
-	"net/http"
 	"io"
+	"log"
+	"net/http"
+
 	"github.com/GeertJohan/go.rice"
 )
 
@@ -13,10 +15,12 @@ func replyJSON(res http.ResponseWriter, req *http.Request) {
 
 // Listen configures and starts a web server, enclosing it in an asynchronous goroutine.
 func Listen(port string) {
-	http.Handle("/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
-	http.HandleFunc("/hubdata.json", replyJSON)
-	err := http.ListenAndServe(":"+port, nil)
-	if err != nil {
-		panic(err)
-	}
+	go func() {
+		http.Handle("/", http.FileServer(rice.MustFindBox("public").HTTPBox()))
+		http.HandleFunc("/hubdata.json", replyJSON)
+		err := http.ListenAndServe(":"+port, nil)
+		if err != nil {
+			log.Fatalf("Unable to start web server: %s", err.Error())
+		}
+	}()
 }

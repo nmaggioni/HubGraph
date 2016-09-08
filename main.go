@@ -74,27 +74,32 @@ func extractEventsAsLinks(events GithubEvents, d3Data *D3) {
 
 // buildGraph wraps around the other graph-building functions to generate new graph data.
 // It iterates on as many API event pages as specified via the CLI flag or the default value.
-func buildGraph() bool {
+func buildGraph() {
 	// Prepare graph
 	var d3Data D3
 	for page := 1; page < pages+1; page++ {
 		// Get latest events from GitHub
-		events, rateLimited := GetHubData(pages, page, token)
-		if rateLimited {
-			secondsToWait := RateLimitSpecs.ResetTimestamp - time.Now().UTC().Unix() + 3
-			for {
-				if secondsToWait <= 0 {
-					clearLine()
-					break
+		events, err := GetHubData(pages, page, token)
+		if _err, ok := err.(*APIError); ok {
+			if _err.status == 403 {
+				secondsToWait := RateLimitSpecs.ResetTimestamp - time.Now().UTC().Unix() + 3
+				for {
+					if secondsToWait <= 0 {
+						clearLine()
+						break
+					}
+					fmt.Printf("Rate limit reached. Will reset in %d seconds.    \r", secondsToWait)
+					time.Sleep(time.Second * 1)
+					secondsToWait--
 				}
-				fmt.Printf("Rate limit reached. Will reset in %d seconds.    \r", secondsToWait)
+				buildGraph()
+				return
+			} else if _err.status == 304 {
+				clearLine()
+				fmt.Println("No new data available.")
 				time.Sleep(time.Second * 1)
-				secondsToWait--
+				return
 			}
-			return buildGraph()
-		} else if events == nil {
-			fmt.Println("No new data available!")
-			return false
 		}
 		// Create graph nodes
 		extractReposAsNodes(events, &d3Data)
@@ -105,7 +110,6 @@ func buildGraph() bool {
 	}
 	// Output to memory
 	MarshalToMemory(d3Data)
-	return true
 }
 
 // clearLine makes sure the terminal line is (theoretically...) empty before writing on it.
@@ -120,14 +124,14 @@ func main() {
 	flag.StringVar(&token, "token", "", "The token to authenticate requests with (will bring rate limiting to 5000/hr instead of 60/hr - https://github.com/settings/tokens/new)")
 	flag.Parse()
 
-	go Listen(port)
+	Listen(port)
 	fmt.Println("Listening on port " + port + " - http://localhost:" + port + "/\n")
 	buildGraph()
 	var duration time.Duration
 	if delay != (60 * pages) {
 		duration = time.Second * time.Duration(delay)
 	} else {
-		if reflect.TypeOf(RateLimitSpecs.PollInterval).String() != "int" {
+		if reflect.TypeOf(RateLimitSpecs.PollInterval).String() != "int" || RateLimitSpecs.PollInterval <= 0 {
 			RateLimitSpecs.PollInterval = 60 * pages
 		}
 		duration = time.Second * time.Duration(RateLimitSpecs.PollInterval)

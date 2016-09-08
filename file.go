@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"strings"
 )
 
@@ -14,7 +15,7 @@ var D3JSON string
 func MarshalToMemory(d3Data D3) {
 	d3JSON, err := json.MarshalIndent(d3Data, "", "  ")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Unable to marshal graph data to in-memory JSON: %s", err.Error())
 	}
 	D3JSON = strings.Replace(string(d3JSON), "null", "{}", -1)
 }
@@ -23,11 +24,11 @@ func MarshalToMemory(d3Data D3) {
 func MarshalToFile(d3Data D3, filePath string) {
 	d3JSON, err := json.MarshalIndent(d3Data, "", "  ")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Unable to marshal graph data to JSON file: %s", err.Error())
 	}
 	d3JSON = []byte(strings.Replace(string(d3JSON), "null", "{}", -1))
 	err = ioutil.WriteFile(filePath, d3JSON, 0644)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Unable to write marshalled JSON to file \"%s\": %s", filePath, err.Error())
 	}
 }
