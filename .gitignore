@@ -6,6 +6,7 @@
 *.o
 *.a
 *.so
+hubgraph
 
 # Folders
 _obj
@@ -26,6 +27,12 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+# Builds folder
+dist
+
+# go.rice boxes (https://github.com/GeertJohan/go.rice)
+rice-box.go
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
