@@ -42,7 +42,7 @@ $ ./hubgraph -h
 
 ## Examples
 
-Here are three examples of what HubGraph will produce:
+Here are three examples of what HubGraph will produce: the _blue_ points are repositories, and other coloured nodes linked to them are related events. _Dark green_, for example, is for when an issue has been commented, _yellow_ for a new commit pushed, _light blue_ for new PRs submitted, and so on... **Place the mouse over a node to read its description!**
 
 ![HubGraph](https://raw.githubusercontent.com/nmaggioni/HubGraph/master/demo.png)
 
