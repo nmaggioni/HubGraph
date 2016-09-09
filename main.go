@@ -74,9 +74,15 @@ func extractReposAsNodes(events GithubEvents, d3Data *D3) {
 // extractEventsAsLinks parses the obtained data and creates the links between the nodes.
 func extractEventsAsLinks(events GithubEvents, d3Data *D3) {
 	for _, evt := range events {
+		// Generic event
 		group, title := GetSpecsFromEventType(evt.Type)
 		d3Data.Nodes = append(d3Data.Nodes, node{evt.ID, group, title})
 		d3Data.Links = append(d3Data.Links, link{evt.Repo.Name, evt.ID, 1})
+		// Fork event
+		if evt.Payload.Forkee.ID != 0 {
+			d3Data.Nodes = append(d3Data.Nodes, node{evt.Payload.Forkee.FullName, 0, ""})
+			d3Data.Links = append(d3Data.Links, link{evt.Repo.Name, evt.Payload.Forkee.FullName, 10})
+		}
 	}
 }
 

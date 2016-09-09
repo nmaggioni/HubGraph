@@ -14,6 +14,24 @@ import (
 // RateLimitSpecs is an instance of `rateLimitSpecs` that holds RL details received from the API response's headers.
 var RateLimitSpecs rateLimitSpecs
 
+type user struct {
+	Login      string `json:"login"`
+	ID         int    `json:"id"`
+	AvatarURL  string `json:"avatar_url"`
+	GravatarID string `json:"gravatar_id"`
+	HTMLURL        string `json:"html_url"`
+}
+
+type repo struct {
+	ID               int         `json:"id"`
+	Name             string      `json:"name"`
+	FullName         string      `json:"full_name"`
+	Owner            user        `json:"owner"`
+	HTMLURL          string      `json:"html_url"`
+	Description      string      `json:"description"`
+	Fork             bool        `json:"fork"`
+}
+
 // GithubEvents is the model to marshal the received JSON API data with.
 type GithubEvents []struct { // https://mholt.github.io/json-to-go/
 	ID    string `json:"id"`
@@ -28,7 +46,98 @@ type GithubEvents []struct { // https://mholt.github.io/json-to-go/
 		Name string `json:"name"`
 		URL  string `json:"url"`
 	} `json:"repo"`
-	CreatedAt time.Time `json:"created_at"`
+	Payload struct {
+		Comment struct {
+			HTMLURL   string      `json:"html_url"`
+			ID        int         `json:"id"`
+			User      user        `json:"user"`
+			CommitID  string      `json:"commit_id"`
+		} `json:"comment"`
+		Ref          string `json:"ref"`
+		RefType      string `json:"ref_type"`
+		MasterBranch string `json:"master_branch"`
+		Description  string `json:"description"`
+		Forkee       struct {
+			ID       int    `json:"id"`
+			Name     string `json:"name"`
+			FullName string `json:"full_name"`
+			Owner    user   `json:"owner"`
+		} `json:"forkee"`
+		Pages []struct {
+			PageName string `json:"page_name"`
+			Title    string `json:"title"`
+			Action   string `json:"action"`
+			Sha      string `json:"sha"`
+			HTMLURL  string `json:"html_url"`
+		} `json:"pages"`
+		Action string `json:"action"`
+		Issue  struct {
+			URL         string `json:"url"`
+			LabelsURL   string `json:"labels_url"`
+			CommentsURL string `json:"comments_url"`
+			EventsURL   string `json:"events_url"`
+			HTMLURL     string `json:"html_url"`
+			ID          int    `json:"id"`
+			Number      int    `json:"number"`
+			Title       string `json:"title"`
+			User        user   `json:"user"`
+			Labels      []struct {
+				URL   string `json:"url"`
+				Name  string `json:"name"`
+				Color string `json:"color"`
+			} `json:"labels"`
+			State     string      `json:"state"`
+			Locked    bool        `json:"locked"`
+			Comments  int         `json:"comments"`
+			Body      string      `json:"body"`
+		} `json:"issue"`
+		Member     user `json:"member"`
+		Repository struct {
+			ID       int    `json:"id"`
+			Name     string `json:"name"`
+			FullName string `json:"full_name"`
+			Owner    user   `json:"owner"`
+		} `json:"repository"`
+		Number      int `json:"number"`
+		PullRequest struct {
+			ID                int         `json:"id"`
+			HTMLURL           string      `json:"html_url"`
+			Number            int         `json:"number"`
+			State             string      `json:"state"`
+			Locked            bool        `json:"locked"`
+			Title             string      `json:"title"`
+			User              user        `json:"user"`
+			Body              string      `json:"body"`
+			Head              struct {
+				Label string `json:"label"`
+				Ref   string `json:"ref"`
+				Sha   string `json:"sha"`
+				User  user   `json:"user"`
+				Repo  repo `json:"repo"`
+			} `json:"head"`
+			Base struct {
+				Label string `json:"label"`
+				Ref   string `json:"ref"`
+				Sha   string `json:"sha"`
+				User  user   `json:"user"`
+				Repo  repo   `json:"repo"`
+			} `json:"base"`
+		} `json:"pull_request"`
+		Head         string `json:"head"`
+		Before       string `json:"before"`
+		Size         int    `json:"size"`
+		DistinctSize int    `json:"distinct_size"`
+		Commits      []struct {
+			Sha      string `json:"sha"`
+			Distinct bool   `json:"distinct"`
+			Message  string `json:"message"`
+			URL      string `json:"url"`
+			Author   struct {
+				Name  string `json:"name"`
+				Email string `json:"email"`
+			} `json:"author"`
+		} `json:"commits"`
+	} `json:"payload"`
 	Org       struct {
 		ID         int    `json:"id"`
 		Login      string `json:"login"`
