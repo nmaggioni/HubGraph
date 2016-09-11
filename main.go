@@ -89,8 +89,9 @@ func extractEventsAsLinks(events GithubEvents, d3Data *D3) {
 // buildGraph wraps around the other graph-building functions to generate new graph data.
 // It iterates on as many API event pages as specified via the CLI flag or the default value.
 func buildGraph() {
-	// Prepare graph
+	// Prepare graph struct
 	var d3Data D3
+	// Loop around API pages
 	for page := 1; page < pages+1; page++ {
 		// Get latest events from GitHub
 		events, err := GetHubData(pages, page, token)
@@ -119,10 +120,11 @@ func buildGraph() {
 		extractReposAsNodes(events, &d3Data)
 		// Create graph links
 		extractEventsAsLinks(events, &d3Data)
+		// Output progress to console
 		clearLine()
 		fmt.Printf("Page %d analyzed...\r", page)
 	}
-	// Output to memory
+	// Output graph data to memory
 	MarshalD3ToMemory(d3Data)
 }
 
