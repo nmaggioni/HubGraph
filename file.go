@@ -23,7 +23,7 @@ func MarshalD3ToMemory(d3Data D3) {
 	D3GraphData = strings.Replace(string(d3JSON), "null", "{}", -1)
 }
 
-// TODO: Docs
+// GetLastUpdateTime fetches the last time graph data (see: `D3` structure) was updated into a RFC1123Z formatted string
 func GetLastUpdateTime() string {
 	var d3Data D3
 	d3RawGraphData := strings.Replace(D3GraphData, "{}", "null", -1)
