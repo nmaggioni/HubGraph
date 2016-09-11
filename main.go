@@ -11,6 +11,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"reflect"
 	"time"
 )
 
@@ -35,12 +36,16 @@ type link struct {
 
 // D3 is the structure used to construct the data for the frontend D3 graph.
 type D3 struct {
-	Nodes           []node `json:"nodes"`
-	Links           []link `json:"links"`
-	RequestsUsed    int    `json:"requestsUsed"`
-	MaxRequests     int    `json:"maxRequests"`
-	LastUpdate      string `json:"lastUpdate"`
-	RefreshInterval int64  `json:"refreshInterval"`
+	Nodes      []node `json:"nodes"`
+	Links      []link `json:"links"`
+	LastUpdate string `json:"lastUpdate"`
+}
+
+// Dashboard is the structure containing the necessary details for the dashboard.
+type Dashboard struct {
+	RequestsUsed    int   `json:"requestsUsed"`
+	MaxRequests     int   `json:"maxRequests"`
+	RefreshInterval int64 `json:"refreshInterval"`
 }
 
 // stringInSlice determines whenever a string is already present in a slice.
@@ -69,35 +74,48 @@ func extractReposAsNodes(events GithubEvents, d3Data *D3) {
 // extractEventsAsLinks parses the obtained data and creates the links between the nodes.
 func extractEventsAsLinks(events GithubEvents, d3Data *D3) {
 	for _, evt := range events {
+		// Generic handler
 		group, title := GetSpecsFromEventType(evt.Type)
 		d3Data.Nodes = append(d3Data.Nodes, node{evt.ID, group, title})
 		d3Data.Links = append(d3Data.Links, link{evt.Repo.Name, evt.ID, 1})
+		// Fork event
+		if evt.Type == "ForkEvent" {
+			d3Data.Nodes = append(d3Data.Nodes, node{evt.Payload.Forkee.FullName, 0, ""})
+			d3Data.Links = append(d3Data.Links, link{evt.Repo.Name, evt.Payload.Forkee.FullName, 10})
+		}
 	}
 }
 
 // buildGraph wraps around the other graph-building functions to generate new graph data.
 // It iterates on as many API event pages as specified via the CLI flag or the default value.
-func buildGraph(nextRefresh int64) (string, bool) {
+func buildGraph() {
 	// Prepare graph
 	var d3Data D3
+
 	for page := 1; page < pages+1; page++ {
 		// Get latest events from GitHub
-		events, rateLimited := GetHubData(pages, page, token)
-		if rateLimited {
-			secondsToWait := RateLimitSpecs.ResetTimestamp - time.Now().UTC().Unix() + 3
-			for {
-				if secondsToWait <= 0 {
-					clearLine()
-					break
+		events, err := GetHubData(pages, page, token)
+
+		if _err, ok := err.(*APIError); ok {
+			if _err.status == 403 {
+				secondsToWait := RateLimitSpecs.ResetTimestamp - time.Now().UTC().Unix() + 3
+				for {
+					if secondsToWait <= 0 {
+						clearLine()
+						break
+					}
+					fmt.Printf("Rate limit reached. Will reset in %d seconds.    \r", secondsToWait)
+					time.Sleep(time.Second * 1)
+					secondsToWait--
 				}
-				fmt.Printf("Rate limit reached. Will reset in %d seconds.    \r", secondsToWait)
+				buildGraph()
+				return
+			} else if _err.status == 304 {
+				clearLine()
+				fmt.Println("No new data available.")
 				time.Sleep(time.Second * 1)
-				secondsToWait--
+				return
 			}
-			return buildGraph(secondsToWait)
-		} else if events == nil {
-			fmt.Println("No new data available!")
-			return "", false
 		}
 		// Create graph nodes
 		extractReposAsNodes(events, &d3Data)
@@ -107,14 +125,19 @@ func buildGraph(nextRefresh int64) (string, bool) {
 		fmt.Printf("Page %d analyzed...\r", page)
 	}
 
-	d3Data.RequestsUsed = RateLimitSpecs.Limit - RateLimitSpecs.Remaining
-	d3Data.MaxRequests = RateLimitSpecs.Limit
 	d3Data.LastUpdate = time.Now().Format(time.RFC1123Z)
-	d3Data.RefreshInterval = nextRefresh
-
 	// Output to memory
-	MarshalToMemory(d3Data)
-	return d3Data.LastUpdate, true
+	MarshalD3ToMemory(d3Data)
+}
+
+func buildDashboard(refreshInterval int64) {
+	var dashboardData Dashboard
+
+	dashboardData.RequestsUsed = RateLimitSpecs.Limit - RateLimitSpecs.Remaining
+	dashboardData.MaxRequests = RateLimitSpecs.Limit
+	dashboardData.RefreshInterval = refreshInterval
+
+	MarshalDashboardToMemory(dashboardData)
 }
 
 // clearLine makes sure the terminal line is (theoretically...) empty before writing on it.
@@ -129,24 +152,29 @@ func main() {
 	flag.StringVar(&token, "token", "", "The token to authenticate requests with (will bring rate limiting to 5000/hr instead of 60/hr - https://github.com/settings/tokens/new)")
 	flag.Parse()
 
-	go Listen(port)
+	Listen(port)
 	fmt.Println("Listening on port " + port + " - http://localhost:" + port + "/\n")
 
-	// TODO: Workaround: this initial call is needed only to populate RateLmitSpecs
-	buildGraph(-1)
+	GetRateLimits(token)
 
 	var duration time.Duration
 	if delay != (60 * pages) {
 		duration = time.Second * time.Duration(delay)
 	} else {
+		if reflect.TypeOf(RateLimitSpecs.PollInterval).String() != "int" || RateLimitSpecs.PollInterval <= 0 {
+			RateLimitSpecs.PollInterval = 60 * pages
+		}
 		duration = time.Second * time.Duration(RateLimitSpecs.PollInterval)
 	}
 
-	// TODO: refreshInterval is constant throughout the whole program. Refactor perhaps?
 	refreshInterval := int64(duration.Seconds())
 
-	lastUpdated, _ := buildGraph(refreshInterval)
+	buildGraph()
+	GetRateLimits(token)
+	buildDashboard(refreshInterval)
+
 	secondsToWait := refreshInterval
+	lastUpdated := GetLastUpdateTime()
 
 	for {
 		for {
@@ -170,7 +198,11 @@ func main() {
 			time.Sleep(time.Second * 1)
 		}
 
-		lastUpdated, _ = buildGraph(refreshInterval)
+		buildGraph()
+		GetRateLimits(token)
+		buildDashboard(refreshInterval)
+
+		lastUpdated = GetLastUpdateTime()
 		secondsToWait = refreshInterval
 	}
 }

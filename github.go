@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -12,6 +13,24 @@ import (
 
 // RateLimitSpecs is an instance of `rateLimitSpecs` that holds RL details received from the API response's headers.
 var RateLimitSpecs rateLimitSpecs
+
+type user struct {
+	Login      string `json:"login"`
+	ID         int    `json:"id"`
+	AvatarURL  string `json:"avatar_url"`
+	GravatarID string `json:"gravatar_id"`
+	HTMLURL        string `json:"html_url"`
+}
+
+type repo struct {
+	ID               int         `json:"id"`
+	Name             string      `json:"name"`
+	FullName         string      `json:"full_name"`
+	Owner            user        `json:"owner"`
+	HTMLURL          string      `json:"html_url"`
+	Description      string      `json:"description"`
+	Fork             bool        `json:"fork"`
+}
 
 // GithubEvents is the model to marshal the received JSON API data with.
 type GithubEvents []struct { // https://mholt.github.io/json-to-go/
@@ -27,7 +46,98 @@ type GithubEvents []struct { // https://mholt.github.io/json-to-go/
 		Name string `json:"name"`
 		URL  string `json:"url"`
 	} `json:"repo"`
-	CreatedAt time.Time `json:"created_at"`
+	Payload struct {
+		Comment struct {
+			HTMLURL   string      `json:"html_url"`
+			ID        int         `json:"id"`
+			User      user        `json:"user"`
+			CommitID  string      `json:"commit_id"`
+		} `json:"comment"`
+		Ref          string `json:"ref"`
+		RefType      string `json:"ref_type"`
+		MasterBranch string `json:"master_branch"`
+		Description  string `json:"description"`
+		Forkee       struct {
+			ID       int    `json:"id"`
+			Name     string `json:"name"`
+			FullName string `json:"full_name"`
+			Owner    user   `json:"owner"`
+		} `json:"forkee"`
+		Pages []struct {
+			PageName string `json:"page_name"`
+			Title    string `json:"title"`
+			Action   string `json:"action"`
+			Sha      string `json:"sha"`
+			HTMLURL  string `json:"html_url"`
+		} `json:"pages"`
+		Action string `json:"action"`
+		Issue  struct {
+			URL         string `json:"url"`
+			LabelsURL   string `json:"labels_url"`
+			CommentsURL string `json:"comments_url"`
+			EventsURL   string `json:"events_url"`
+			HTMLURL     string `json:"html_url"`
+			ID          int    `json:"id"`
+			Number      int    `json:"number"`
+			Title       string `json:"title"`
+			User        user   `json:"user"`
+			Labels      []struct {
+				URL   string `json:"url"`
+				Name  string `json:"name"`
+				Color string `json:"color"`
+			} `json:"labels"`
+			State     string      `json:"state"`
+			Locked    bool        `json:"locked"`
+			Comments  int         `json:"comments"`
+			Body      string      `json:"body"`
+		} `json:"issue"`
+		Member     user `json:"member"`
+		Repository struct {
+			ID       int    `json:"id"`
+			Name     string `json:"name"`
+			FullName string `json:"full_name"`
+			Owner    user   `json:"owner"`
+		} `json:"repository"`
+		Number      int `json:"number"`
+		PullRequest struct {
+			ID                int         `json:"id"`
+			HTMLURL           string      `json:"html_url"`
+			Number            int         `json:"number"`
+			State             string      `json:"state"`
+			Locked            bool        `json:"locked"`
+			Title             string      `json:"title"`
+			User              user        `json:"user"`
+			Body              string      `json:"body"`
+			Head              struct {
+				Label string `json:"label"`
+				Ref   string `json:"ref"`
+				Sha   string `json:"sha"`
+				User  user   `json:"user"`
+				Repo  repo `json:"repo"`
+			} `json:"head"`
+			Base struct {
+				Label string `json:"label"`
+				Ref   string `json:"ref"`
+				Sha   string `json:"sha"`
+				User  user   `json:"user"`
+				Repo  repo   `json:"repo"`
+			} `json:"base"`
+		} `json:"pull_request"`
+		Head         string `json:"head"`
+		Before       string `json:"before"`
+		Size         int    `json:"size"`
+		DistinctSize int    `json:"distinct_size"`
+		Commits      []struct {
+			Sha      string `json:"sha"`
+			Distinct bool   `json:"distinct"`
+			Message  string `json:"message"`
+			URL      string `json:"url"`
+			Author   struct {
+				Name  string `json:"name"`
+				Email string `json:"email"`
+			} `json:"author"`
+		} `json:"commits"`
+	} `json:"payload"`
 	Org       struct {
 		ID         int    `json:"id"`
 		Login      string `json:"login"`
@@ -45,10 +155,44 @@ type rateLimitSpecs struct {
 	PollInterval   int
 }
 
+// APIError is the struct that is used to report API status errors. It is used to differ from 304 and 403 status codes.
+type APIError struct {
+	msg    string
+	status int
+}
+
+func (e *APIError) Error() string {
+	return e.msg + " (" + strconv.Itoa(e.status) + ")"
+}
+
+// parseHeader converts a header string to int and handles errors in conversion.
+func parseHeader(header http.Header, fieldName string) int {
+	if header.Get(fieldName) != "" {
+		content, err := strconv.Atoi(header.Get(fieldName))
+		if err != nil {
+			log.Fatalf("Unable to parse header \"%s\"'s content: %s", fieldName, err.Error())
+		}
+		return content
+	}
+	return 0
+}
+
+// parseLongHeader converts a long header string to int64 and handles errors in conversion.
+func parseLongHeader(header http.Header, fieldName string) int64 {
+	if header.Get(fieldName) != "" {
+		content, err := strconv.ParseInt(header.Get(fieldName), 10, 64)
+		if err != nil {
+			log.Fatalf("Unable to parse long header \"%s\"'s content: %s", fieldName, err.Error())
+		}
+		return content
+	}
+	return 0
+}
+
 // unauthenticatedGet performs an unauthenticated call to the GitHub's API.
 // If given an `http.Client`, it will be used to perform the call instead of the standard one.
 // This caveat is used to deduplicate code for the `authenticatedGet` function.
-func unauthenticatedGet(pages int, page int, client *http.Client) (GithubEvents, bool) {
+func unauthenticatedGet(pages int, page int, client *http.Client) (GithubEvents, error) {
 	var httpClient *http.Client
 	if client != nil {
 		httpClient = client
@@ -59,32 +203,31 @@ func unauthenticatedGet(pages int, page int, client *http.Client) (GithubEvents,
 	}
 	r, err := httpClient.Get("https://api.github.com/events?page=" + strconv.Itoa(page))
 	if err != nil {
-		panic(err)
+		log.Fatalf("Error in requesting data from API: %s", err.Error())
 	}
 	defer r.Body.Close()
 
-	RateLimitSpecs.Limit, _ = strconv.Atoi(r.Header.Get("x-ratelimit-limit"))
-	RateLimitSpecs.Remaining, _ = strconv.Atoi(r.Header.Get("x-ratelimit-remaining"))
-	RateLimitSpecs.ResetTimestamp, _ = strconv.ParseInt(r.Header.Get("x-ratelimit-reset"), 10, 64)
-	RateLimitSpecs.PollInterval, _ = strconv.Atoi(r.Header.Get("x-poll-interval"))
-	RateLimitSpecs.PollInterval = RateLimitSpecs.PollInterval * pages
+	RateLimitSpecs.Limit = parseHeader(r.Header, "x-ratelimit-limit")
+	RateLimitSpecs.Remaining = parseHeader(r.Header, "x-ratelimit-remaining")
+	RateLimitSpecs.ResetTimestamp = parseLongHeader(r.Header, "x-ratelimit-reset")
+	RateLimitSpecs.PollInterval = parseHeader(r.Header, "x-poll-interval") * pages
 
 	if r.StatusCode == http.StatusNotModified { // (304) No new content
-		return nil, false
+		return nil, &APIError{"no new content", 304}
 	} else if r.StatusCode == http.StatusForbidden { // (403) Rate limit reached
-		return nil, true
+		return nil, &APIError{"rate limited", 403}
 	}
 
 	body, _ := ioutil.ReadAll(r.Body)
 	var events GithubEvents
 	json.Unmarshal(body, &events)
 
-	return events, false
+	return events, nil
 }
 
 // authenticatedGet performs an authenticated call to the GitHub's API using the user-supplied token.
 // A custom call to `unauthenticatedGet` is made under the hood.
-func authenticatedGet(pages int, page int, token string) (GithubEvents, bool) {
+func authenticatedGet(pages int, page int, token string) (GithubEvents, error) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
@@ -95,7 +238,7 @@ func authenticatedGet(pages int, page int, token string) (GithubEvents, bool) {
 
 // GetHubData returns a success/failure boolean (respectively `true`/`false`) along with the marshalled API data.
 // See the `GithubEvents` struct.
-func GetHubData(pages int, page int, token string) (GithubEvents, bool) {
+func GetHubData(pages int, page int, token string) (GithubEvents, error) {
 	if token != "" {
 		return authenticatedGet(pages, page, token)
 	}
@@ -107,7 +250,7 @@ func GetHubData(pages int, page int, token string) (GithubEvents, bool) {
 func GetSpecsFromEventType(eventType string) (int, string) {
 	switch eventType { // https://developer.github.com/v3/activity/events/types/
 	case "CommitCommentEvent":
-		return 1, "Comment to commit"  // TODO: should be appended to commit node, not to repo
+		return 1, "Comment to commit" // TODO: should be appended to commit node, not to repo
 	case "CreateEvent":
 		return 2, "New repo created"
 	case "DeleteEvent":

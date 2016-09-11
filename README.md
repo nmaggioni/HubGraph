@@ -48,7 +48,7 @@ Here are three examples of what HubGraph will produce: the _blue_ points are rep
 
 ## Contribute
 
-PRs gladly accepted!
+PRs gladly accepted! Basing them on a new feature/fix branch would help in reviewing.
 
 Small note: If editing the Readme, consider conforming to the [standard-readme](https://github.com/RichardLitt/standard-readme) specification.
 

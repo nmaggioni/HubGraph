@@ -2,32 +2,32 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"log"
 	"strings"
 )
 
-// D3JSON is the JSON string that the frontend requests for sourcing graph data.
+// D3GraphData is the JSON string that the frontend requests for sourcing graph data.
 // It is served directly from memory via a custom http route.
-var D3JSON string
+var D3GraphData string
 
-// MarshalToMemory converts a JSON object to a string and saves it in-memory, in the `D3JSON` variable.
-func MarshalToMemory(d3Data D3) {
+// DashboardData is the JSON string that the frontend requests for sourcing dashboard data.
+// It is served directly from memory via a custom http route.
+var DashboardData string
+
+// MarshalD3ToMemory converts a JSON object to a string and saves it in-memory, in the `D3GraphData` variable.
+func MarshalD3ToMemory(d3Data D3) {
 	d3JSON, err := json.MarshalIndent(d3Data, "", "  ")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Unable to marshal graph data to in-memory JSON: %s", err.Error())
 	}
-	D3JSON = strings.Replace(string(d3JSON), "null", "{}", -1)
+	D3GraphData = strings.Replace(string(d3JSON), "null", "{}", -1)
 }
 
-// MarshalToFile converts a JSON object to a string and saves it in a file, specified by the `filePath` string.
-func MarshalToFile(d3Data D3, filePath string) {
-	d3JSON, err := json.MarshalIndent(d3Data, "", "  ")
+// MarshalDashboardToMemory converts a JSON object to a string and saves it in-memory, in the `DashboardData` variable.
+func MarshalDashboardToMemory(dashboardData Dashboard) {
+	dashboardJSON, err := json.MarshalIndent(dashboardData, "", "  ")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Unable to marshal dashboard data to in-memory JSON: %s", err.Error())
 	}
-	d3JSON = []byte(strings.Replace(string(d3JSON), "null", "{}", -1))
-	err = ioutil.WriteFile(filePath, d3JSON, 0644)
-	if err != nil {
-		panic(err)
-	}
+	DashboardData = strings.Replace(string(dashboardJSON), "null", "{}", -1)
 }
