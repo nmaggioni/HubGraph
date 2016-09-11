@@ -15,7 +15,7 @@
 </style>
 <html>
   <body>
-    <h2>Current status</h2>
+    <h2>Current status: <span id="status"></span></h2>
     <h3>
       No. of nodes: <span id="nodes_number"></span><br>
       Last update: <span id="last_update"></span><br>
@@ -43,7 +43,7 @@
       .force("center", d3.forceCenter(width / 2, height / 2));
 
   d3.json("/graphdata.json", function(error, graph) {
-    if (error) throw error;
+    if (error) return;
 
     var link = svg.append("g")
         .attr("class", "links")
@@ -90,6 +90,15 @@
   });
 
   d3.json("/dashboarddata.json", function(error, dashboard) {
+
+    var statusEl = document.getElementById("status");
+    if (error) {
+      statusEl.textContent = "Content currently unavailable. Please check server logs.";
+      return;
+    }
+
+    statusEl.textContent = "All operational";
+
     var requestsUsedEl = document.getElementById("requests_used");
     requestsUsedEl.textContent = dashboard.requestsUsed + "/" + dashboard.maxRequests;
 
