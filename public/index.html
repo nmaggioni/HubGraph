@@ -74,37 +74,6 @@
     simulation.force("link")
         .links(graph.links);
 
-    var requestsUsedEl = document.getElementById("requests_used");
-    requestsUsedEl.textContent = graph.requestsUsed + "/" + graph.maxRequests;
-
-    var nodesNumberEl = document.getElementById("nodes_number");
-    nodesNumberEl.textContent = graph.nodes.length;
-
-    var lastUpdateEl = document.getElementById("last_update");
-    lastUpdateEl.textContent = graph.lastUpdate;
-
-    var refreshIntervalEl = document.getElementById("refresh_interval");
-
-    window.setInterval(function() {
-      var now = new Date();
-
-      var nextRefresh = new Date(graph.lastUpdate);
-      nextRefresh.setSeconds(nextRefresh.getSeconds() + graph.refreshInterval);
-
-      var currentWaitTime = refreshIntervalEl.textContent;
-
-      if (currentWaitTime == "") {
-        refreshIntervalEl.textContent = Math.floor((nextRefresh - now) / 1000);
-        return; 
-      }
-      
-      if (currentWaitTime == 0) {
-        refreshIntervalEl.textContent = "Refreshing..."
-      } else {
-        refreshIntervalEl.textContent = currentWaitTime - 1;
-      }
-    }, 1000);
-
     function ticked() {
       link
           .attr("x1", function(d) { return d.source.x; })
@@ -118,6 +87,46 @@
           //.attr("cx", function(d) { return d.x; })
           //.attr("cy", function(d) { return d.y; });
     }
+  });
+
+  d3.json("/dashboarddata.json", function(error, dashboard) {
+    var requestsUsedEl = document.getElementById("requests_used");
+    requestsUsedEl.textContent = dashboard.requestsUsed + "/" + dashboard.maxRequests;
+
+    var refreshIntervalEl = document.getElementById("refresh_interval");
+
+    var lastUpdate;
+
+    d3.json("/graphdata.json", function(error, graph) {
+      var nodesNumberEl = document.getElementById("nodes_number");
+      nodesNumberEl.textContent = graph.nodes.length;
+
+      var lastUpdateEl = document.getElementById("last_update");
+      lastUpdateEl.textContent = graph.lastUpdate;
+      lastUpdate = graph.lastUpdate
+    });
+
+    window.setInterval(function() {
+      var now = new Date();
+
+      var nextRefresh = new Date(lastUpdate);
+      nextRefresh.setSeconds(nextRefresh.getSeconds() + dashboard.refreshInterval);
+
+      var currentWaitTime = refreshIntervalEl.textContent;
+
+      if (currentWaitTime == "") {
+        refreshIntervalEl.textContent = Math.floor((nextRefresh - now) / 1000);
+        return; 
+      }
+      
+      if (currentWaitTime == 0) {
+        refreshIntervalEl.textContent = "Refreshing...";
+        window.location.reload(true);
+        // TODO: Use XHRs instead of reloading the whole page
+      } else {
+        refreshIntervalEl.textContent = currentWaitTime - 1;
+      }
+    }, 1000);
   });
 
   function dragstarted(d) {
@@ -142,10 +151,6 @@
       d.fy = null;
     }
   }
-
-  setTimeout(function() {
-    location.reload(true);
-  }, 60000);  // TODO: update D3 graph instead of refreshing
 })();
 
 </script>
