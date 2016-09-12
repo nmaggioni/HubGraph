@@ -116,7 +116,11 @@ func buildGraph() {
 				time.Sleep(time.Second * 1)
 				return
 			}
+		} else if events == nil {
+			fmt.Println("No new data available!")
+			return
 		}
+
 		// Create graph nodes
 		extractReposAsNodes(events, &d3Data)
 		// Create graph links
