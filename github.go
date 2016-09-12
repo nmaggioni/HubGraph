@@ -255,7 +255,20 @@ func unauthenticatedGet(url string, client *http.Client) ([]byte, error) {
 	return body, nil
 }
 
-func getGithubEvents(page int, pages int, token string) (GithubEvents, error) {
+// authenticatedGet performs an authenticated call to the GitHub's API using the user-supplied token.
+// A custom call to `unauthenticatedGet` is made under the hood.
+func authenticatedGet(url string, token string) ([]byte, error) {
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+	return unauthenticatedGet(url, tc)
+}
+
+// GetHubData returns a success/failure boolean (respectively `true`/`false`) along with the marshalled API data.
+// See the `GithubEvents` struct.
+func GetHubData(pages int, page int, token string) (GithubEvents, error) {
 	var responseBody []byte
 	var err error
 
@@ -275,23 +288,6 @@ func getGithubEvents(page int, pages int, token string) (GithubEvents, error) {
 	json.Unmarshal(responseBody, &events)
 
 	return events, nil
-}
-
-// authenticatedGet performs an authenticated call to the GitHub's API using the user-supplied token.
-// A custom call to `unauthenticatedGet` is made under the hood.
-func authenticatedGet(url string, token string) ([]byte, error) {
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-	tc := oauth2.NewClient(oauth2.NoContext, ts)
-
-	return unauthenticatedGet(url, tc)
-}
-
-// GetHubData returns a success/failure boolean (respectively `true`/`false`) along with the marshalled API data.
-// See the `GithubEvents` struct.
-func GetHubData(pages int, page int, token string) (GithubEvents, error) {
-	return getGithubEvents(pages, page, token)
 }
 
 // GetRateLimits fetches rate limits from GitHub API server for the current client. It returns a `rateLimitSpecs`
