@@ -185,7 +185,7 @@ func main() {
 
 	for {
 		for {
-			if secondsToWait == 0 {
+			if secondsToWait <= 0 {
 				clearLine()
 				break
 			}
