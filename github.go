@@ -237,7 +237,6 @@ func unauthenticatedGet(url string, client *http.Client) ([]byte, error) {
 
 	if err != nil {
 		log.Fatal("Unable to read response body")
-		return nil, err
 	}
 
 	return body, nil
