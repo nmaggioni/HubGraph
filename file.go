@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 )
 
@@ -30,7 +31,8 @@ func GetLastUpdateTime() string {
 	err := json.Unmarshal([]byte(D3GraphData), &d3Data)
 
 	if err != nil {
-		log.Fatalf("Unable to unmarshal d3Data in-memory JSON to data structure:%s\n%s", err.Error(), D3GraphData)
+		fmt.Printf("Unable to unmarshal d3Data in-memory JSON to data structure:%s - ", err.Error())
+		log.Fatal(D3GraphData)
 	}
 
 	return d3Data.LastUpdate
