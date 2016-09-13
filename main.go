@@ -193,7 +193,7 @@ func main() {
 			nextRefresh, err := time.Parse(time.RFC1123Z, lastUpdated)
 
 			if err != nil {
-				fmt.Printf("Error while trying to parse last update time")
+				fmt.Printf("Error while trying to parse last update time\n")
 			} else {
 
 				nextRefresh = nextRefresh.Add(time.Duration(refreshInterval) * time.Second)
