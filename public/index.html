@@ -44,7 +44,7 @@
 
   d3.json("/graphdata.json", function(error, graph) {
     if (error) {
-      console.error("Error while trying to parse graphdata.json");
+      console.error("Error while trying to parse graphdata.json: " + error);
       return;
     }
 
@@ -96,7 +96,7 @@
 
     var statusEl = document.getElementById("status");
     if (error) {
-      console.error("Error while trying to parse dashboarddata.json");
+      console.error("Error while trying to parse dashboarddata.json: " + error);
       statusEl.textContent = "Content currently unavailable.";
       return;
     }
