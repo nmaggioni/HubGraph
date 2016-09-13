@@ -171,9 +171,9 @@ type rawRateLimitSpecs struct {
 
 func (raw *rawRateLimitSpecs) torateLimitSpecs() rateLimitSpecs {
 	return rateLimitSpecs{
-		Limit:          raw.Rate.Limit,
-		Remaining:      raw.Rate.Remaining,
-		ResetTimestamp: raw.Rate.Reset,
+		Limit:          raw.Resources.Core.Limit,
+		Remaining:      raw.Resources.Core.Remaining,
+		ResetTimestamp: raw.Resources.Core.Reset,
 		PollInterval:   180, // default value
 	}
 }
