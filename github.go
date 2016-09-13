@@ -169,7 +169,7 @@ type rawRateLimitSpecs struct {
 	}
 }
 
-func (raw *rawRateLimitSpecs) torateLimitSpecs() rateLimitSpecs {
+func (raw *rawRateLimitSpecs) toRateLimitSpecs() rateLimitSpecs {
 	return rateLimitSpecs{
 		Limit:          raw.Resources.Core.Limit,
 		Remaining:      raw.Resources.Core.Remaining,
@@ -316,7 +316,7 @@ func GetRateLimits(token string) rateLimitSpecs {
 		panic("Error while unmarshalling GitHub rate limit response")
 	}
 
-	RateLimitSpecs = limits.torateLimitSpecs()
+	RateLimitSpecs = limits.toRateLimitSpecs()
 	return RateLimitSpecs
 }
 
