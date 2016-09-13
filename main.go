@@ -193,15 +193,17 @@ func main() {
 			nextRefresh, err := time.Parse(time.RFC1123Z, lastUpdated)
 
 			if err != nil {
-				panic("Error while trying to parse date")
+				fmt.Printf("Error while trying to parse last update time")
+			} else {
+
+				nextRefresh = nextRefresh.Add(time.Duration(refreshInterval) * time.Second)
+
+				secondsToWait = int64(nextRefresh.Sub(time.Now()).Seconds())
+
+				fmt.Printf("Content updated at %s - Next refresh in: %d (RL: %d/%d req/hr used)\r",
+					lastUpdated, secondsToWait, (RateLimitSpecs.Limit - RateLimitSpecs.Remaining), RateLimitSpecs.Limit)
 			}
 
-			nextRefresh = nextRefresh.Add(time.Duration(refreshInterval) * time.Second)
-
-			secondsToWait = int64(nextRefresh.Sub(time.Now()).Seconds())
-
-			fmt.Printf("Content updated at %s - Next refresh in: %d (RL: %d/%d req/hr used)\r",
-				lastUpdated, secondsToWait, (RateLimitSpecs.Limit - RateLimitSpecs.Remaining), RateLimitSpecs.Limit)
 			time.Sleep(time.Second * 1)
 		}
 
