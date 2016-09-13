@@ -20,7 +20,8 @@ func MarshalD3ToMemory(d3Data D3) {
 	if err != nil {
 		log.Fatalf("Unable to marshal graph data to in-memory JSON: %s", err.Error())
 	}
-	D3GraphData = strings.Replace(string(d3JSON), "null", "{}", -1)
+	//D3GraphData = strings.Replace(string(d3JSON), "null", "{}", -1)
+	D3GraphData = string(d3JSON)
 }
 
 // GetLastUpdateTime fetches the last time graph data (see: `D3` structure) was updated into a RFC1123Z formatted string
