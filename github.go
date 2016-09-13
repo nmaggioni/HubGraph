@@ -236,7 +236,7 @@ func authenticatedGet(pages int, page int, token string) (GithubEvents, error) {
 	return unauthenticatedGet(pages, page, tc)
 }
 
-// GetHubData returns a success/failure boolean (respectively `true`/`false`) along with the marshalled API data.
+// GetHubData returns the marshalled API data, along with an error if thrown.
 // See the `GithubEvents` struct.
 func GetHubData(pages int, page int, token string) (GithubEvents, error) {
 	if token != "" {
