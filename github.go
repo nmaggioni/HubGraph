@@ -279,7 +279,7 @@ func GetHubData(pages int, page int, token string) (GithubEvents, error) {
 
 // GetRateLimits fetches rate limits from GitHub API server for the current client. It returns a `rateLimitSpecs`
 // data structures containg reset timestamp, used requests, max requests and a default polling interval
-func GetRateLimits(token string) rateLimitSpecs {
+func GetRateLimits(token string) {
 	// TODO: Check if rateLimitSpecs is already initialized
 
 	var response []byte
@@ -304,7 +304,6 @@ func GetRateLimits(token string) rateLimitSpecs {
 	}
 
 	RateLimitSpecs = limits.toRateLimitSpecs()
-	return RateLimitSpecs
 }
 
 // GetSpecsFromEventType returns the integer to use as group ID in the frontend graph.
