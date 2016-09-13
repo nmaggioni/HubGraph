@@ -11,7 +11,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// rateLimitSpecs is an instance of `rateLimitSpecs` that holds RL details received from the API response's headers.
+// RateLimitSpecs is an instance of `rateLimitSpecs` that holds RL details received from the API response's headers.
 var RateLimitSpecs rateLimitSpecs
 
 type user struct {
