@@ -43,7 +43,10 @@
       .force("center", d3.forceCenter(width / 2, height / 2));
 
   d3.json("/graphdata.json", function(error, graph) {
-    if (error) return;
+    if (error) {
+      console.error("Error while trying to parse graphdata.json");
+      return;
+    }
 
     var link = svg.append("g")
         .attr("class", "links")
@@ -93,7 +96,8 @@
 
     var statusEl = document.getElementById("status");
     if (error) {
-      statusEl.textContent = "Content currently unavailable. Please check server logs.";
+      console.error("Error while trying to parse dashboarddata.json");
+      statusEl.textContent = "Content currently unavailable.";
       return;
     }
 
