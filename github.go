@@ -155,18 +155,6 @@ type rawRateLimitSpecs struct {
 			Reset     int64
 		}
 	}
-
-	Search struct {
-		Limit     int
-		Remaining int
-		Reset     int64
-	}
-
-	Rate struct {
-		Limit     int
-		Remaining int
-		Reset     int64
-	}
 }
 
 func (raw *rawRateLimitSpecs) toRateLimitSpecs() rateLimitSpecs {
