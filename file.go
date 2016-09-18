@@ -24,18 +24,18 @@ func MarshalD3ToMemory(d3Data D3) {
 	D3GraphData = string(d3JSON)
 }
 
-// GetLastUpdateTime fetches the last time graph data (see: `D3` structure) was updated into a RFC1123Z formatted string
+// GetLastUpdateTime fetches the last time graph data (see: `Dashboard` structure) was updated into a RFC1123Z formatted string
 func GetLastUpdateTime() string {
-	var d3Data D3
+	var dashboardData Dashboard
 
-	err := json.Unmarshal([]byte(D3GraphData), &d3Data)
+	err := json.Unmarshal([]byte(DashboardData), &dashboardData)
 
 	if err != nil {
-		fmt.Printf("Unable to unmarshal d3Data in-memory JSON to data structure:%s - ", err.Error())
-		log.Fatal(D3GraphData)
+		fmt.Printf("Unable to unmarshal dashboardData in-memory JSON to data structure: %s - ", err.Error())
+		log.Fatal(DashboardData)
 	}
 
-	return d3Data.LastUpdate
+	return dashboardData.LastUpdate
 }
 
 // MarshalDashboardToMemory converts a JSON object to a string and saves it in-memory, in the `DashboardData` variable.

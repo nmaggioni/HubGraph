@@ -108,16 +108,14 @@
 
     var refreshIntervalEl = document.getElementById("refresh_interval");
 
-    var lastUpdate;
-
     d3.json("/graphdata.json", function(error, graph) {
       var nodesNumberEl = document.getElementById("nodes_number");
       nodesNumberEl.textContent = graph.nodes.length;
-
-      var lastUpdateEl = document.getElementById("last_update");
-      lastUpdateEl.textContent = graph.lastUpdate;
-      lastUpdate = graph.lastUpdate
     });
+
+    var lastUpdate = dashboard.lastUpdate;
+    var lastUpdateEl = document.getElementById("last_update");
+    lastUpdateEl.textContent = lastUpdate
 
     window.setInterval(function() {
       var now = new Date();

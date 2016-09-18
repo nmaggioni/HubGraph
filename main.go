@@ -37,16 +37,16 @@ type link struct {
 
 // D3 is the structure used to construct the data for the frontend D3 graph.
 type D3 struct {
-	Nodes      []node `json:"nodes"`
-	Links      []link `json:"links"`
-	LastUpdate string `json:"lastUpdate"`
+	Nodes []node `json:"nodes"`
+	Links []link `json:"links"`
 }
 
 // Dashboard is the structure containing the necessary details for the dashboard.
 type Dashboard struct {
-	RequestsUsed    int   `json:"requestsUsed"`
-	MaxRequests     int   `json:"maxRequests"`
-	RefreshInterval int64 `json:"refreshInterval"`
+	RequestsUsed    int    `json:"requestsUsed"`
+	MaxRequests     int    `json:"maxRequests"`
+	RefreshInterval int64  `json:"refreshInterval"`
+	LastUpdate      string `json:"lastUpdate"`
 }
 
 // stringInSlice determines whenever a string is already present in a slice.
@@ -132,8 +132,6 @@ func buildGraph() {
 		fmt.Printf("Page %d analyzed...\r", page)
 	}
 
-	d3Data.LastUpdate = time.Now().Format(time.RFC1123Z)
-
 	// Output graph data to memory
 	MarshalD3ToMemory(d3Data)
 }
@@ -144,6 +142,7 @@ func buildDashboard(refreshInterval int64) {
 	dashboardData.RequestsUsed = RateLimitSpecs.Limit - RateLimitSpecs.Remaining
 	dashboardData.MaxRequests = RateLimitSpecs.Limit
 	dashboardData.RefreshInterval = refreshInterval
+	dashboardData.LastUpdate = time.Now().Format(time.RFC1123Z)
 
 	MarshalDashboardToMemory(dashboardData)
 }
@@ -194,14 +193,14 @@ func main() {
 			nextRefresh, err := time.Parse(time.RFC1123Z, lastUpdated)
 
 			if err != nil {
-				log.Printf("Error while trying to parse last update time\n")
+				log.Printf("Error while trying to parse last update time: \"%s\"\n", nextRefresh)
 			} else {
 
 				nextRefresh = nextRefresh.Add(time.Duration(refreshInterval) * time.Second)
 
 				secondsToWait = int64(nextRefresh.Sub(time.Now()).Seconds())
 
-				log.Printf("Content updated at %s - Next refresh in: %d (RL: %d/%d req/hr used)\r",
+				fmt.Printf("Content updated at %s - Next refresh in: %d (RL: %d/%d req/hr used)\r",
 					lastUpdated, secondsToWait, (RateLimitSpecs.Limit - RateLimitSpecs.Remaining), RateLimitSpecs.Limit)
 			}
 
