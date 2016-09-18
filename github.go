@@ -293,14 +293,14 @@ func GetRateLimits(token string) {
 	}
 
 	if err != nil {
-		panic("Error while fetching rate limits for GitHub API")
+		log.Print("Error while fetching rate limits for GitHub API")
 	}
 
 	var limits rawRateLimitSpecs
 	err = json.Unmarshal(response, &limits)
 
 	if err != nil {
-		panic("Error while unmarshalling GitHub rate limit response")
+		log.Print("Error while unmarshalling GitHub rate limit response")
 	}
 
 	RateLimitSpecs = limits.toRateLimitSpecs()
