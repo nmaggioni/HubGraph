@@ -17,10 +17,11 @@ import (
 )
 
 var (
-	port  string
+	port string
 	pages int
 	token string
 	delay int
+	noDashboard bool
 )
 
 type node struct {
@@ -43,6 +44,7 @@ type D3 struct {
 
 // Dashboard is the structure containing the necessary details for the dashboard.
 type Dashboard struct {
+	ShowDashboard   bool   `json:"showDashboard"`
 	RequestsUsed    int    `json:"requestsUsed"`
 	MaxRequests     int    `json:"maxRequests"`
 	RefreshInterval int64  `json:"refreshInterval"`
@@ -142,6 +144,7 @@ func buildGraph() {
 func buildDashboard(refreshInterval int64) {
 	var dashboardData Dashboard
 
+	dashboardData.ShowDashboard = !noDashboard
 	dashboardData.RequestsUsed = RateLimitSpecs.Limit - RateLimitSpecs.Remaining
 	dashboardData.MaxRequests = RateLimitSpecs.Limit
 	dashboardData.RefreshInterval = refreshInterval
@@ -160,6 +163,7 @@ func main() {
 	flag.IntVar(&pages, "pages", 3, "How many pages to read (will impact rate limiting dramatically!)")
 	flag.IntVar(&delay, "delay", (60 * pages), "Delay in seconds between data refreshes. Defaults to (60 * pages), a safe timing for unauthenticated requests")
 	flag.StringVar(&token, "token", "", "The token to authenticate requests with (will bring rate limiting to 5000/hr instead of 60/hr - https://github.com/settings/tokens/new)")
+	flag.BoolVar(&noDashboard, "nodashboard", false, "Hide the dashboard.")
 	flag.Parse()
 
 	Listen(port)

@@ -13,7 +13,8 @@
   stroke-width: 1.5px;
 }
 
-.dashboard {
+#dashboard {
+  visibility: hidden;
   position: absolute;
   top: 15px;
   left: 15px;
@@ -22,18 +23,18 @@
   font-size: 75%;
 }
 
-.dashboard .status {
+#dashboard .status {
   margin-top: 0px;
 }
 
-.dashboard span {
+#dashboard span {
   font-weight: normal;
 }
 
 </style>
 <html>
   <body>
-    <div class="dashboard">
+    <div id="dashboard">
       <h2 class="status">Current status: <span id="status"></span></h2>
       <h3>
         No. of nodes: <span id="nodes_number"></span><br>
@@ -42,7 +43,7 @@
         Requests used: <span id="requests_used"></span><br>
       </h3>
     </div>
-    <div class="graph">
+    <div id="graph">
       <svg width="1280" height="720"></svg>
     </div>
   </body>
@@ -112,12 +113,42 @@
     }
   });
 
-  d3.json("/dashboarddata.json", function(error, dashboard) {
+  function dragstarted(d) {
+    if (draggable) {
+      if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+  }
 
+  function dragged(d) {
+    if (draggable) {
+      d.fx = d3.event.x;
+      d.fy = d3.event.y;
+    }
+  }
+
+  function dragended(d) {
+    if (draggable) {
+      if (!d3.event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
+  }
+
+  d3.json("/dashboarddata.json", function(error, dashboard) {
+    var dashboardEl = document.getElementById("dashboard");
     var statusEl = document.getElementById("status");
+
     if (error) {
       console.error("Error while trying to parse dashboarddata.json: " + error);
       statusEl.textContent = "No content available";
+      return;
+    }
+
+    if (dashboard.showDashboard) {
+      dashboardEl.style.visibility = "visible";
+    } else {
       return;
     }
 
@@ -147,9 +178,9 @@
 
       if (currentWaitTime == "") {
         refreshIntervalEl.textContent = Math.floor((nextRefresh - now) / 1000);
-        return; 
+        return;
       }
-      
+
       if (currentWaitTime == 0) {
         refreshIntervalEl.textContent = "Refreshing...";
         window.location.reload(true);
@@ -159,29 +190,6 @@
       }
     }, 1000);
   });
-
-  function dragstarted(d) {
-    if (draggable) {
-      if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x;
-      d.fy = d.y;
-    }
-  }
-
-  function dragged(d) {
-    if (draggable) {
-      d.fx = d3.event.x;
-      d.fy = d3.event.y;
-    }
-  }
-
-  function dragended(d) {
-    if (draggable) {
-      if (!d3.event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
-    }
-  }
 })();
 
 </script>
