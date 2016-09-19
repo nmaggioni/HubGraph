@@ -15,6 +15,13 @@
 </style>
 <html>
   <body>
+    <h2>Current status: <span id="status"></span></h2>
+    <h3>
+      No. of nodes: <span id="nodes_number"></span><br>
+      Last update: <span id="last_update"></span><br>
+      Next refresh: <span id="refresh_interval"></span><br>
+      Requests used: <span id="requests_used"></span><br>
+    </h3>
     <svg width="1280" height="720"></svg>
   </body>
 </html>
@@ -36,7 +43,10 @@
       .force("center", d3.forceCenter(width / 2, height / 2));
 
   d3.json("/graphdata.json", function(error, graph) {
-    if (error) throw error;
+    if (error) {
+      console.error("Error while trying to parse graphdata.json: " + error);
+      return;
+    }
 
     var link = svg.append("g")
         .attr("class", "links")
@@ -82,6 +92,54 @@
     }
   });
 
+  d3.json("/dashboarddata.json", function(error, dashboard) {
+
+    var statusEl = document.getElementById("status");
+    if (error) {
+      console.error("Error while trying to parse dashboarddata.json: " + error);
+      statusEl.textContent = "Content currently unavailable.";
+      return;
+    }
+
+    statusEl.textContent = "All operational";
+
+    var requestsUsedEl = document.getElementById("requests_used");
+    requestsUsedEl.textContent = dashboard.requestsUsed + "/" + dashboard.maxRequests;
+
+    var refreshIntervalEl = document.getElementById("refresh_interval");
+
+    d3.json("/graphdata.json", function(error, graph) {
+      var nodesNumberEl = document.getElementById("nodes_number");
+      nodesNumberEl.textContent = graph.nodes.length;
+    });
+
+    var lastUpdate = dashboard.lastUpdate;
+    var lastUpdateEl = document.getElementById("last_update");
+    lastUpdateEl.textContent = lastUpdate
+
+    window.setInterval(function() {
+      var now = new Date();
+
+      var nextRefresh = new Date(lastUpdate);
+      nextRefresh.setSeconds(nextRefresh.getSeconds() + dashboard.refreshInterval);
+
+      var currentWaitTime = refreshIntervalEl.textContent;
+
+      if (currentWaitTime == "") {
+        refreshIntervalEl.textContent = Math.floor((nextRefresh - now) / 1000);
+        return; 
+      }
+      
+      if (currentWaitTime == 0) {
+        refreshIntervalEl.textContent = "Refreshing...";
+        window.location.reload(true);
+        // TODO: Use XHRs instead of reloading the whole page
+      } else {
+        refreshIntervalEl.textContent = currentWaitTime - 1;
+      }
+    }, 1000);
+  });
+
   function dragstarted(d) {
     if (draggable) {
       if (!d3.event.active) simulation.alphaTarget(0.3).restart();
@@ -104,10 +162,6 @@
       d.fy = null;
     }
   }
-
-  setTimeout(function() {
-    location.reload(true);
-  }, 60000);  // TODO: update D3 graph instead of refreshing
 })();
 
 </script>

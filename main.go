@@ -11,6 +11,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"reflect"
 	"time"
 )
@@ -44,8 +45,8 @@ type D3 struct {
 type Dashboard struct {
 	RequestsUsed    int    `json:"requestsUsed"`
 	MaxRequests     int    `json:"maxRequests"`
-	LastUpdate      string `json:"lastUpdate"`
 	RefreshInterval int64  `json:"refreshInterval"`
+	LastUpdate      string `json:"lastUpdate"`
 }
 
 // stringInSlice determines whenever a string is already present in a slice.
@@ -91,10 +92,12 @@ func extractEventsAsLinks(events GithubEvents, d3Data *D3) {
 func buildGraph() {
 	// Prepare graph struct
 	var d3Data D3
+
 	// Loop around API pages
 	for page := 1; page < pages+1; page++ {
 		// Get latest events from GitHub
 		events, err := GetHubData(pages, page, token)
+
 		if _err, ok := err.(*APIError); ok {
 			if _err.status == 403 {
 				secondsToWait := RateLimitSpecs.ResetTimestamp - time.Now().UTC().Unix() + 3
@@ -115,7 +118,11 @@ func buildGraph() {
 				time.Sleep(time.Second * 1)
 				return
 			}
+		} else if events == nil {
+			fmt.Println("No new data available!")
+			return
 		}
+
 		// Create graph nodes
 		extractReposAsNodes(events, &d3Data)
 		// Create graph links
@@ -124,8 +131,20 @@ func buildGraph() {
 		clearLine()
 		fmt.Printf("Page %d analyzed...\r", page)
 	}
+
 	// Output graph data to memory
 	MarshalD3ToMemory(d3Data)
+}
+
+func buildDashboard(refreshInterval int64) {
+	var dashboardData Dashboard
+
+	dashboardData.RequestsUsed = RateLimitSpecs.Limit - RateLimitSpecs.Remaining
+	dashboardData.MaxRequests = RateLimitSpecs.Limit
+	dashboardData.RefreshInterval = refreshInterval
+	dashboardData.LastUpdate = time.Now().Format(time.RFC1123Z)
+
+	MarshalDashboardToMemory(dashboardData)
 }
 
 // clearLine makes sure the terminal line is (theoretically...) empty before writing on it.
@@ -142,7 +161,9 @@ func main() {
 
 	Listen(port)
 	fmt.Println("Listening on port " + port + " - http://localhost:" + port + "/\n")
-	buildGraph()
+
+	GetRateLimits(token)
+
 	var duration time.Duration
 	if delay != (60 * pages) {
 		duration = time.Second * time.Duration(delay)
@@ -152,18 +173,45 @@ func main() {
 		}
 		duration = time.Second * time.Duration(RateLimitSpecs.PollInterval)
 	}
+
+	refreshInterval := int64(duration.Seconds())
+
+	buildGraph()
+	GetRateLimits(token)
+	buildDashboard(refreshInterval)
+
+	secondsToWait := refreshInterval
+	lastUpdated := GetLastUpdateTime()
+
 	for {
-		secondsToWait := duration.Seconds()
 		for {
 			if secondsToWait <= 0 {
 				clearLine()
 				break
 			}
-			fmt.Printf("Content updated at %s - Next refresh in: %fs (RL: %d/%d req/hr used)\r",
-				time.Now().Format(time.RFC822Z), secondsToWait, (RateLimitSpecs.Limit - RateLimitSpecs.Remaining), RateLimitSpecs.Limit)
+
+			nextRefresh, err := time.Parse(time.RFC1123Z, lastUpdated)
+
+			if err != nil {
+				log.Printf("Error while trying to parse last update time: \"%s\"\n", nextRefresh)
+			} else {
+
+				nextRefresh = nextRefresh.Add(time.Duration(refreshInterval) * time.Second)
+
+				secondsToWait = int64(nextRefresh.Sub(time.Now()).Seconds())
+
+				fmt.Printf("Content updated at %s - Next refresh in: %d (RL: %d/%d req/hr used)\r",
+					lastUpdated, secondsToWait, (RateLimitSpecs.Limit - RateLimitSpecs.Remaining), RateLimitSpecs.Limit)
+			}
+
 			time.Sleep(time.Second * 1)
-			secondsToWait--
 		}
+
 		buildGraph()
+		GetRateLimits(token)
+		buildDashboard(refreshInterval)
+
+		lastUpdated = GetLastUpdateTime()
+		secondsToWait = refreshInterval
 	}
 }

@@ -19,17 +19,17 @@ type user struct {
 	ID         int    `json:"id"`
 	AvatarURL  string `json:"avatar_url"`
 	GravatarID string `json:"gravatar_id"`
-	HTMLURL        string `json:"html_url"`
+	HTMLURL    string `json:"html_url"`
 }
 
 type repo struct {
-	ID               int         `json:"id"`
-	Name             string      `json:"name"`
-	FullName         string      `json:"full_name"`
-	Owner            user        `json:"owner"`
-	HTMLURL          string      `json:"html_url"`
-	Description      string      `json:"description"`
-	Fork             bool        `json:"fork"`
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	FullName    string `json:"full_name"`
+	Owner       user   `json:"owner"`
+	HTMLURL     string `json:"html_url"`
+	Description string `json:"description"`
+	Fork        bool   `json:"fork"`
 }
 
 // GithubEvents is the model to marshal the received JSON API data with.
@@ -48,10 +48,10 @@ type GithubEvents []struct { // https://mholt.github.io/json-to-go/
 	} `json:"repo"`
 	Payload struct {
 		Comment struct {
-			HTMLURL   string      `json:"html_url"`
-			ID        int         `json:"id"`
-			User      user        `json:"user"`
-			CommitID  string      `json:"commit_id"`
+			HTMLURL  string `json:"html_url"`
+			ID       int    `json:"id"`
+			User     user   `json:"user"`
+			CommitID string `json:"commit_id"`
 		} `json:"comment"`
 		Ref          string `json:"ref"`
 		RefType      string `json:"ref_type"`
@@ -86,10 +86,10 @@ type GithubEvents []struct { // https://mholt.github.io/json-to-go/
 				Name  string `json:"name"`
 				Color string `json:"color"`
 			} `json:"labels"`
-			State     string      `json:"state"`
-			Locked    bool        `json:"locked"`
-			Comments  int         `json:"comments"`
-			Body      string      `json:"body"`
+			State    string `json:"state"`
+			Locked   bool   `json:"locked"`
+			Comments int    `json:"comments"`
+			Body     string `json:"body"`
 		} `json:"issue"`
 		Member     user `json:"member"`
 		Repository struct {
@@ -100,20 +100,20 @@ type GithubEvents []struct { // https://mholt.github.io/json-to-go/
 		} `json:"repository"`
 		Number      int `json:"number"`
 		PullRequest struct {
-			ID                int         `json:"id"`
-			HTMLURL           string      `json:"html_url"`
-			Number            int         `json:"number"`
-			State             string      `json:"state"`
-			Locked            bool        `json:"locked"`
-			Title             string      `json:"title"`
-			User              user        `json:"user"`
-			Body              string      `json:"body"`
-			Head              struct {
+			ID      int    `json:"id"`
+			HTMLURL string `json:"html_url"`
+			Number  int    `json:"number"`
+			State   string `json:"state"`
+			Locked  bool   `json:"locked"`
+			Title   string `json:"title"`
+			User    user   `json:"user"`
+			Body    string `json:"body"`
+			Head    struct {
 				Label string `json:"label"`
 				Ref   string `json:"ref"`
 				Sha   string `json:"sha"`
 				User  user   `json:"user"`
-				Repo  repo `json:"repo"`
+				Repo  repo   `json:"repo"`
 			} `json:"head"`
 			Base struct {
 				Label string `json:"label"`
@@ -138,13 +138,32 @@ type GithubEvents []struct { // https://mholt.github.io/json-to-go/
 			} `json:"author"`
 		} `json:"commits"`
 	} `json:"payload"`
-	Org       struct {
+	Org struct {
 		ID         int    `json:"id"`
 		Login      string `json:"login"`
 		GravatarID string `json:"gravatar_id"`
 		URL        string `json:"url"`
 		AvatarURL  string `json:"avatar_url"`
 	} `json:"org,omitempty"`
+}
+
+type rawRateLimitSpecs struct {
+	Resources struct {
+		Core struct {
+			Limit     int
+			Remaining int
+			Reset     int64
+		}
+	}
+}
+
+func (raw *rawRateLimitSpecs) toRateLimitSpecs() rateLimitSpecs {
+	return rateLimitSpecs{
+		Limit:          raw.Resources.Core.Limit,
+		Remaining:      raw.Resources.Core.Remaining,
+		ResetTimestamp: raw.Resources.Core.Reset,
+		PollInterval:   180, // default value
+	}
 }
 
 // rateLimitSpecs defines the fields from the API response's headers that concern Rate Limiting.
@@ -192,7 +211,7 @@ func parseLongHeader(header http.Header, fieldName string) int64 {
 // unauthenticatedGet performs an unauthenticated call to the GitHub's API.
 // If given an `http.Client`, it will be used to perform the call instead of the standard one.
 // This caveat is used to deduplicate code for the `authenticatedGet` function.
-func unauthenticatedGet(pages int, page int, client *http.Client) (GithubEvents, error) {
+func unauthenticatedGet(url string, client *http.Client) ([]byte, error) {
 	var httpClient *http.Client
 	if client != nil {
 		httpClient = client
@@ -201,16 +220,12 @@ func unauthenticatedGet(pages int, page int, client *http.Client) (GithubEvents,
 			Timeout: time.Second * 30,
 		}
 	}
-	r, err := httpClient.Get("https://api.github.com/events?page=" + strconv.Itoa(page))
+	r, err := httpClient.Get(url)
 	if err != nil {
 		log.Fatalf("Error in requesting data from API: %s", err.Error())
 	}
-	defer r.Body.Close()
 
-	RateLimitSpecs.Limit = parseHeader(r.Header, "x-ratelimit-limit")
-	RateLimitSpecs.Remaining = parseHeader(r.Header, "x-ratelimit-remaining")
-	RateLimitSpecs.ResetTimestamp = parseLongHeader(r.Header, "x-ratelimit-reset")
-	RateLimitSpecs.PollInterval = parseHeader(r.Header, "x-poll-interval") * pages
+	defer r.Body.Close()
 
 	if r.StatusCode == http.StatusNotModified { // (304) No new content
 		return nil, &APIError{"no new content", 304}
@@ -218,31 +233,77 @@ func unauthenticatedGet(pages int, page int, client *http.Client) (GithubEvents,
 		return nil, &APIError{"rate limited", 403}
 	}
 
-	body, _ := ioutil.ReadAll(r.Body)
-	var events GithubEvents
-	json.Unmarshal(body, &events)
+	body, err := ioutil.ReadAll(r.Body)
 
-	return events, nil
+	if err != nil {
+		log.Fatal("Unable to read response body")
+	}
+
+	return body, nil
 }
 
 // authenticatedGet performs an authenticated call to the GitHub's API using the user-supplied token.
 // A custom call to `unauthenticatedGet` is made under the hood.
-func authenticatedGet(pages int, page int, token string) (GithubEvents, error) {
+func authenticatedGet(url string, token string) ([]byte, error) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 
-	return unauthenticatedGet(pages, page, tc)
+	return unauthenticatedGet(url, tc)
 }
 
 // GetHubData returns the marshalled API data, along with an error if thrown.
 // See the `GithubEvents` struct.
 func GetHubData(pages int, page int, token string) (GithubEvents, error) {
-	if token != "" {
-		return authenticatedGet(pages, page, token)
+	var responseBody []byte
+	var err error
+
+	if token == "" {
+		responseBody, err =
+			unauthenticatedGet("https://api.github.com/events?page="+strconv.Itoa(page), nil)
+	} else {
+		responseBody, err =
+			authenticatedGet("https://api.github.com/events?page="+strconv.Itoa(page), token)
 	}
-	return unauthenticatedGet(pages, page, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var events GithubEvents
+	json.Unmarshal(responseBody, &events)
+
+	return events, nil
+}
+
+// GetRateLimits fetches rate limits from GitHub API server for the current client. It returns a `rateLimitSpecs`
+// data structures containg reset timestamp, used requests, max requests and a default polling interval
+func GetRateLimits(token string) {
+	// TODO: Check if rateLimitSpecs is already initialized
+
+	var response []byte
+	var err error
+
+	const rateLimitURL = "https://api.github.com/rate_limit"
+	if token == "" {
+		response, err = unauthenticatedGet(rateLimitURL, nil)
+	} else {
+		response, err = authenticatedGet(rateLimitURL, token)
+	}
+
+	if err != nil {
+		log.Print("Error while fetching rate limits for GitHub API")
+	}
+
+	var limits rawRateLimitSpecs
+	err = json.Unmarshal(response, &limits)
+
+	if err != nil {
+		log.Print("Error while unmarshalling GitHub rate limit response")
+	}
+
+	RateLimitSpecs = limits.toRateLimitSpecs()
 }
 
 // GetSpecsFromEventType returns the integer to use as group ID in the frontend graph.
