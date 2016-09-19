@@ -6,13 +6,15 @@ import (
 	"log"
 )
 
-// D3GraphData is the JSON string that the frontend requests for sourcing graph data.
-// It is served directly from memory via a custom http route.
-var D3GraphData string
+var (
+	// D3GraphData is the JSON string that the frontend requests for sourcing graph data.
+	// It is served directly from memory via a custom http route.
+	D3GraphData string
 
-// DashboardData is the JSON string that the frontend requests for sourcing dashboard data.
-// It is served directly from memory via a custom http route.
-var DashboardData string
+	// DashboardData is the JSON string that the frontend requests for sourcing dashboard data.
+	// It is served directly from memory via a custom http route.
+	DashboardData string
+)
 
 // MarshalD3ToMemory converts a JSON object to a string and saves it in-memory, in the `D3GraphData` variable.
 func MarshalD3ToMemory(d3Data D3) {

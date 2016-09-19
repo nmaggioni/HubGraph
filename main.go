@@ -24,32 +24,34 @@ var (
 	noDashboard bool
 )
 
-type node struct {
-	ID    string `json:"id"`
-	Group int    `json:"group"`
-	Title string `json:"title"`
-}
+type (
+	node struct {
+		ID    string `json:"id"`
+		Group int    `json:"group"`
+		Title string `json:"title"`
+	}
 
-type link struct {
-	Source string `json:"source"`
-	Target string `json:"target"`
-	Value  int    `json:"value"`
-}
+	link struct {
+		Source string `json:"source"`
+		Target string `json:"target"`
+		Value  int    `json:"value"`
+	}
 
-// D3 is the structure used to construct the data for the frontend D3 graph.
-type D3 struct {
-	Nodes []node `json:"nodes"`
-	Links []link `json:"links"`
-}
+	// D3 is the structure used to construct the data for the frontend D3 graph.
+	D3 struct {
+		Nodes []node `json:"nodes"`
+		Links []link `json:"links"`
+	}
 
-// Dashboard is the structure containing the necessary details for the dashboard.
-type Dashboard struct {
-	ShowDashboard   bool   `json:"showDashboard"`
-	RequestsUsed    int    `json:"requestsUsed"`
-	MaxRequests     int    `json:"maxRequests"`
-	RefreshInterval int64  `json:"refreshInterval"`
-	LastUpdate      string `json:"lastUpdate"`
-}
+	// Dashboard is the structure containing the necessary details for the dashboard.
+	Dashboard struct {
+		ShowDashboard   bool   `json:"showDashboard"`
+		RequestsUsed    int    `json:"requestsUsed"`
+		MaxRequests     int    `json:"maxRequests"`
+		RefreshInterval int64  `json:"refreshInterval"`
+		LastUpdate      string `json:"lastUpdate"`
+	}
+)
 
 // stringInSlice determines whenever a string is already present in a slice.
 func stringInSlice(a string, list []string) bool {
