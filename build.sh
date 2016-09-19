@@ -19,13 +19,11 @@ if [ "$YN" == "Y" ] || [ "$YN" == "y" ]; then
     GOOS=windows GOARCH=386 go build -o dist/hubgraph_windows_i386.exe
     echo "* Compiling for Mac OS x86_64"
     GOOS=darwin GOARCH=amd64 go build -o dist/hubgraph_darwin_amd64
-    strip dist/* 2>/dev/null
     rm rice-box.go
     file dist/*
 else
     echo -e "\n* Compiling and appending bundle"
     $GOPATH/bin/rice append --exec $(go build -v 2>&1 | cut -d/ -f3)
-    strip hubgraph
     file hubgraph
 fi
 
