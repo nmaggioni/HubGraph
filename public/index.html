@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <style>
+@import 'https://fonts.googleapis.com/css?family=Open+Sans:400,700';
 
 .links line {
   stroke: #999;
@@ -12,17 +13,38 @@
   stroke-width: 1.5px;
 }
 
+.dashboard {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: bold;
+  font-size: 75%;
+}
+
+.dashboard .status {
+  margin-top: 0px;
+}
+
+.dashboard span {
+  font-weight: normal;
+}
+
 </style>
 <html>
   <body>
-    <h2>Current status: <span id="status"></span></h2>
-    <h3>
-      No. of nodes: <span id="nodes_number"></span><br>
-      Last update: <span id="last_update"></span><br>
-      Next refresh: <span id="refresh_interval"></span><br>
-      Requests used: <span id="requests_used"></span><br>
-    </h3>
-    <svg width="1280" height="720"></svg>
+    <div class="dashboard">
+      <h2 class="status">Current status: <span id="status"></span></h2>
+      <h3>
+        No. of nodes: <span id="nodes_number"></span><br>
+        Last update: <span id="last_update"></span><br>
+        Next refresh: <span id="refresh_interval"></span><br>
+        Requests used: <span id="requests_used"></span><br>
+      </h3>
+    </div>
+    <div class="graph">
+      <svg width="1280" height="720"></svg>
+    </div>
   </body>
 </html>
 <script src="https://d3js.org/d3.v4.min.js"></script>
@@ -97,11 +119,11 @@
     var statusEl = document.getElementById("status");
     if (error) {
       console.error("Error while trying to parse dashboarddata.json: " + error);
-      statusEl.textContent = "Content currently unavailable.";
+      statusEl.textContent = "No content available";
       return;
     }
 
-    statusEl.textContent = "All operational";
+    statusEl.textContent = "Operational";
 
     var requestsUsedEl = document.getElementById("requests_used");
     requestsUsedEl.textContent = dashboard.requestsUsed + "/" + dashboard.maxRequests;
