@@ -95,6 +95,9 @@ func buildGraph() {
 
 	// Loop around API pages
 	for page := 1; page < pages+1; page++ {
+		// Output progress to console
+		clearLine()
+		fmt.Printf("Analyzing page %d...\r", page)
 		// Get latest events from GitHub
 		events, err := GetHubData(pages, page, token)
 
@@ -127,11 +130,11 @@ func buildGraph() {
 		extractReposAsNodes(events, &d3Data)
 		// Create graph links
 		extractEventsAsLinks(events, &d3Data)
-		// Output progress to console
-		clearLine()
-		fmt.Printf("Page %d analyzed...\r", page)
 	}
 
+	// Output progress to console
+	clearLine()
+	fmt.Printf("Building graph data...\r")
 	// Output graph data to memory
 	MarshalD3ToMemory(d3Data)
 }
