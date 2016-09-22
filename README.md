@@ -1,6 +1,6 @@
 ![HubGraph](https://raw.githubusercontent.com/nmaggioni/HubGraph/master/banner.png)
 
-[![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/b767236ba1f348d08b93ed317d657ed3)](https://www.codacy.com/app/nmaggioni/HubGraph?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=nmaggioni/HubGraph&amp;utm_campaign=Badge_Grade) [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
 > Grab the latest events from the boring GitHub's API and build an entertaining graph upon them!
 
