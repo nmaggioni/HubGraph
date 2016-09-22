@@ -166,7 +166,7 @@
 
     var lastUpdate = dashboard.lastUpdate;
     var lastUpdateEl = document.getElementById("last_update");
-    lastUpdateEl.textContent = lastUpdate
+    lastUpdateEl.textContent = lastUpdate;
 
     window.setInterval(function() {
       var now = new Date();
@@ -177,13 +177,21 @@
       var currentWaitTime = refreshIntervalEl.textContent;
 
       if (currentWaitTime == "") {
+        if (nextRefresh - now < 0) { 
+          // If this happens, we read dashboarddata.json before the server managed to update it
+          window.location.reload(true);
+        } 
+
         refreshIntervalEl.textContent = Math.floor((nextRefresh - now) / 1000);
         return;
       }
 
       if (currentWaitTime == 0) {
         refreshIntervalEl.textContent = "Refreshing...";
-        window.location.reload(true);
+
+        window.setTimeout(function() {
+          window.location.reload(true);
+        }, 750); // used to compensate for idle server time while analyzing new data
         // TODO: Use XHRs instead of reloading the whole page
       } else {
         refreshIntervalEl.textContent = currentWaitTime - 1;
