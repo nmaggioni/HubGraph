@@ -21,7 +21,7 @@ var (
 	pages int
 	token string
 	delay int
-	noDashboard bool
+	showDashboard bool
 )
 
 type (
@@ -146,7 +146,7 @@ func buildGraph() {
 func buildDashboard(refreshInterval int64) {
 	var dashboardData Dashboard
 
-	dashboardData.ShowDashboard = !noDashboard
+	dashboardData.ShowDashboard = showDashboard
 	dashboardData.RequestsUsed = RateLimitSpecs.Limit - RateLimitSpecs.Remaining
 	dashboardData.MaxRequests = RateLimitSpecs.Limit
 	dashboardData.RefreshInterval = refreshInterval
@@ -165,7 +165,7 @@ func main() {
 	flag.IntVar(&pages, "pages", 3, "How many pages to read (will impact rate limiting dramatically!)")
 	flag.IntVar(&delay, "delay", (60 * pages), "Delay in seconds between data refreshes. Defaults to (60 * pages), a safe timing for unauthenticated requests")
 	flag.StringVar(&token, "token", "", "The token to authenticate requests with (will bring rate limiting to 5000/hr instead of 60/hr - https://github.com/settings/tokens/new)")
-	flag.BoolVar(&noDashboard, "nodashboard", false, "Hide the dashboard.")
+	flag.BoolVar(&showDashboard, "dashboard", false, "Show the dashboard - EXPERIMENTAL.")  // TODO: issue #4
 	flag.Parse()
 
 	Listen(port)
