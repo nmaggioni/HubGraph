@@ -23,12 +23,22 @@ Check out [the releases section](https://github.com/nmaggioni/HubGraph/releases)
 
 ### From source
 
+Please ensure that you have [go.rice](https://github.com/GeertJohan/go.rice) installed. See [here](https://github.com/GeertJohan/go.rice#installation) for the official commands.
+
 Given that your `$PATH` already has `$GOPATH/bin` in it, get the package and install it these commands:
 
 ```
 $ go get github.com/nmaggioni/hubgraph
 $ cd $GOPATH/src/github.com/nmaggioni/hubgraph
-$ ./build.sh
+```
+Now use the `build.sh` script if you want to cross-compile, or just run the following to build a binary for your system:
+
+```
+rice append --exec $(go build -v 2>&1 | cut -d/ -f3)
+```
+The last step is to install the binary to the `$GOPATH/bin` directory:
+
+```
 $ go install
 ```
 
