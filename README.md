@@ -25,7 +25,7 @@ Check out [the releases section](https://github.com/nmaggioni/HubGraph/releases)
 
 Please ensure that you have [go.rice](https://github.com/GeertJohan/go.rice) installed. See [here](https://github.com/GeertJohan/go.rice#installation) for the official commands.
 
-Given that your `$PATH` already has `$GOPATH/bin` in it, get the package and install it these commands:
+Given that your `$PATH` already has `$GOPATH/bin` in it, get the package and install it with these commands:
 
 ```
 $ go get github.com/nmaggioni/hubgraph
